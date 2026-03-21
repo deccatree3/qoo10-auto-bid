@@ -14,7 +14,7 @@
       panel.id = 'auto-bid-panel';
       panel.style.cssText = 'position:fixed;top:20px;right:20px;z-index:99999;background:#1a1a2e;color:#e0e0e0;border-radius:12px;padding:16px;width:320px;font-family:Malgun Gothic,sans-serif;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,.5);border:1px solid #16213e;';
       panel.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><span style="font-size:15px;font-weight:bold;color:#e94560;">⚡ 자동 입찰</span><button id="ab-close" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:16px;">✕</button></div>'
-        + '<div id="ab-warning" style="display:none;background:#7b1c1c;border:1px solid #e94560;border-radius:8px;padding:10px;margin-bottom:10px;font-size:12px;line-height:1.6;"><div style="font-weight:bold;color:#ff6b6b;margin-bottom:4px;">⚠️ 상품이 선택되지 않았습니다</div><div style="color:#ffb3b3;">키워드 검색 후 노출 상품을 선택해 주세요.</div><div id="ab-warning-detail" style="color:#ff9999;font-size:11px;margin-top:4px;"></div></div>'
+        
         + '<div style="background:#16213e;border-radius:8px;padding:10px;margin-bottom:10px;"><div style="margin-bottom:8px;color:#a0a0c0;font-size:11px;">▼ 입찰 설정</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"><label style="font-size:11px;">목표 순위<input id="ab-rank" type="number" value="3" min="1" max="16" style="width:100%;margin-top:3px;padding:4px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#fff;text-align:center;"></label><label style="font-size:11px;">최대 입찰금액(¥)<input id="ab-max" type="number" value="2000" step="100" style="width:100%;margin-top:3px;padding:4px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#fff;text-align:center;"></label><label style="font-size:11px;">마감 N초 전 입찰<input id="ab-timing" type="number" value="3" min="1" max="10" style="width:100%;margin-top:3px;padding:4px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#fff;text-align:center;"></label><label style="font-size:11px;">갱신 주기(ms)<input id="ab-poll" type="number" value="1000" step="100" min="500" style="width:100%;margin-top:3px;padding:4px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#fff;text-align:center;"></label></div></div>'
         + '<div style="background:#16213e;border-radius:8px;padding:10px;margin-bottom:10px;"><div style="margin-bottom:6px;color:#a0a0c0;font-size:11px;">▼ 구글 시트 자동 기록</div><label style="font-size:11px;">Apps Script URL<input id="ab-sheet-url" type="text" placeholder="배포된 웹 앱 URL 붙여넣기" style="width:100%;margin-top:3px;padding:4px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#fff;font-size:10px;box-sizing:border-box;"></label><div style="margin-top:6px;display:flex;align-items:center;gap:6px;"><input id="ab-sheet-enable" type="checkbox" checked style="cursor:pointer;"><label for="ab-sheet-enable" style="font-size:11px;cursor:pointer;">입찰 마감 후 자동 기록</label></div></div>'
         + '<div style="background:#16213e;border-radius:8px;padding:10px;margin-bottom:10px;"><div style="color:#a0a0c0;font-size:11px;margin-bottom:6px;">▼ 실시간 현황</div><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#aaa;">남은 시간</span><span id="ab-timeleft" style="font-weight:bold;color:#0f3460;">--:--:--</span></div><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#aaa;">목표순위 현재가</span><span id="ab-current-price" style="font-weight:bold;color:#e94560;">-</span></div><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#aaa;">예상 입찰가</span><span id="ab-planned-price" style="font-weight:bold;color:#00b4d8;">-</span></div><div style="display:flex;justify-content:space-between;"><span style="color:#aaa;">입찰단위</span><span id="ab-unit">-</span></div></div>'
@@ -36,26 +36,6 @@
               el.textContent = msg; el.style.color = color || '#888';
       }
 
-   function checkProductSelected() {
-           const hasKeyword = ADBidding.plus_items && ADBidding.plus_items.keyword;
-           const hasProduct = ADBidding.plus_items && ADBidding.plus_items.title && ADBidding.plus_items.title !== "";
-           const warningEl = document.getElementById('ab-warning');
-           const detailEl = document.getElementById('ab-warning-detail');
-           const startBtn = document.getElementById('ab-start');
-           if (!hasKeyword && !hasPlusId) {
-                     warningEl.style.display = 'block';
-                     detailEl.textContent = '키워드를 먼저 검색하세요.';
-                     startBtn.disabled = true; startBtn.style.opacity = '0.4'; startBtn.style.cursor = 'not-allowed';
-           } else if (!hasProduct) {
-                     warningEl.style.display = 'block';
-                     const kw = ADBidding.plus_items ? (ADBidding.plus_items.keyword || '') : '';
-                     detailEl.textContent = kw ? '"' + kw + '" 검색 후 상품을 선택해 주세요.' : '노출 상품을 선택해 주세요.';
-                     startBtn.disabled = true; startBtn.style.opacity = '0.4'; startBtn.style.cursor = 'not-allowed';
-           } else {
-                     warningEl.style.display = 'none';
-                     if (!pollTimer) { startBtn.disabled = false; startBtn.style.opacity = '1'; startBtn.style.cursor = 'pointer'; }
-           }
-   }
 
    function getSecondsLeft() {
            const el = document.querySelector('#td_left_time');
@@ -195,8 +175,7 @@
            document.getElementById('ab-stop').disabled = true;
            if (!bidFired) setStatus('정지됨','#888');
            log('모니터링 정지');
-           checkProductSelected();
-   }
+            }
 
    document.getElementById('ab-start').addEventListener('click', startMonitoring);
       document.getElementById('ab-stop').addEventListener('click', stopMonitoring);
@@ -209,10 +188,8 @@
       document.addEventListener('mousemove', e => { if(!dragging)return; panel.style.left=(e.clientX-dragOffX)+'px'; panel.style.top=(e.clientY-dragOffY)+'px'; panel.style.right='auto'; });
       document.addEventListener('mouseup', () => { dragging=false; });
 
-   checkProductSelected();
-      updateUI();
+       updateUI();
       log('스크립트 로드 완료');
       setStatus('키워드 검색 후 "모니터링 시작" 클릭','#888');
-      setInterval(() => { if (!pollTimer) checkProductSelected(); }, 2000);
 
 })();
