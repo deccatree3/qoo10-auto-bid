@@ -38,7 +38,7 @@
 
    function checkProductSelected() {
            const hasKeyword = ADBidding.plus_items && ADBidding.plus_items.keyword;
-           const hasPlusId = ADBidding.bp_plus_id;
+           const hasProduct = ADBidding.plus_items && ADBidding.plus_items.title && ADBidding.plus_items.title !== "";
            const warningEl = document.getElementById('ab-warning');
            const detailEl = document.getElementById('ab-warning-detail');
            const startBtn = document.getElementById('ab-start');
@@ -46,7 +46,7 @@
                      warningEl.style.display = 'block';
                      detailEl.textContent = '키워드를 먼저 검색하세요.';
                      startBtn.disabled = true; startBtn.style.opacity = '0.4'; startBtn.style.cursor = 'not-allowed';
-           } else if (!hasPlusId) {
+           } else if (!hasProduct) {
                      warningEl.style.display = 'block';
                      const kw = ADBidding.plus_items ? (ADBidding.plus_items.keyword || '') : '';
                      detailEl.textContent = kw ? '"' + kw + '" 검색 후 상품을 선택해 주세요.' : '노출 상품을 선택해 주세요.';
