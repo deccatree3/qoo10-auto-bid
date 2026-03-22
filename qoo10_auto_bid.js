@@ -135,6 +135,7 @@
     beacon.onload = function() { log('✅ 시트 기록 완료'); setStatus('✅ 시트 기록 완료','#4CAF50'); };
     beacon.onerror = function() { log('✅ 시트 전송 (응답 확인 불가)'); setStatus('✅ 시트 전송','#4CAF50'); };
     beacon.src = url + '?' + params.toString();
+   }
 
    function executeBid() {
            if (bidFired) return; bidFired = true;
