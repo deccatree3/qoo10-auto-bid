@@ -24,7 +24,7 @@
         + '<div id="ab-log" style="margin-top:8px;font-size:10px;color:#666;max-height:80px;overflow-y:auto;border-top:1px solid #333;padding-top:6px;"></div>';
       document.body.appendChild(panel);
 
-   let pollTimer = null, bidFired = false, myBidPrice = 0, myBidRank = 0;
+   let pollTimer = null, bidFired = false, bidScheduled = false, myBidPrice = 0, myBidRank = 0;
   let bidWorker = null;
 
   // Web Worker 생성 (탭 숨겨도 타이머 정상 작동)
@@ -167,19 +167,29 @@
 
    function tick() {
            const triggerSecs = parseInt(document.getElementById('ab-timing').value);
+           // 리스트 갱신 요청 (비동기 - 응답은 다음 tick에 반영)
            try { ADBidding.getBiddingList(); } catch(e) { log('현황 갱신 오류: '+e.message); }
            updateUI();
            const secsLeft = getTrueSecondsLeft();
            if (secsLeft !== null) {
-                     if (!bidFired && secsLeft <= triggerSecs && secsLeft >= 0) { setStatus('⚡ 마감 '+secsLeft+'초! 입찰 실행!','#e94560'); executeBid(); }
-                     else if (secsLeft <= 0 && bidFired) { setTimeout(() => { recordToSheet(); stopMonitoring(); }, 1500); }
+                     // 60초 이하 시 매초 로그 출력 (모니터링 동작 확인용)
+                     if (secsLeft <= 60) {
+                               log('⏱ 남은 시간: ' + secsLeft + '초');
+                     }
+                     if (!bidFired && !bidScheduled && secsLeft <= triggerSecs && secsLeft >= 0) {
+                               bidScheduled = true;
+                               setStatus('⚡ 마감 '+secsLeft+'초! 최종 갱신 후 입찰!','#e94560');
+                               log('🔄 최종 리스트 갱신 → 0.6초 후 입찰 실행');
+                               try { ADBidding.getBiddingList(); } catch(e) {}
+                               setTimeout(function() { executeBid(); }, 600);
+                     } else if (secsLeft <= 0 && bidFired) { setTimeout(function() { recordToSheet(); stopMonitoring(); }, 1500); }
            }
    }
 
    function startMonitoring() {
            if (pollTimer) return;
            if (!ADBidding.plus_items || !ADBidding.bp_plus_id) { alert('키워드를 먼저 검색하고 상품을 선택해 주세요.'); return; }
-           bidFired = false; myBidPrice = 0; myBidRank = 0; bidEndTime = null; serverPcOffset = 0;
+           bidFired = false; bidScheduled = false; myBidPrice = 0; myBidRank = 0; bidEndTime = null; serverPcOffset = 0;
            setStatus('🔄 데이터 갱신 중...', '#f4a261');
            try { ADBidding.getBiddingList(); } catch(e) {}
            setTimeout(function() { calibrateServerTime(); }, 1000);
