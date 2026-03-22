@@ -222,6 +222,17 @@
       document.addEventListener('mousemove', e => { if(!dragging)return; panel.style.left=(e.clientX-dragOffX)+'px'; panel.style.top=(e.clientY-dragOffY)+'px'; panel.style.right='auto'; });
       document.addEventListener('mouseup', () => { dragging=false; });
 
+  // localStorage에서 Apps Script URL 복원
+  const savedUrl = localStorage.getItem('qoo10_ab_sheet_url');
+  if (savedUrl) document.getElementById('ab-sheet-url').value = savedUrl;
+
+  // URL 변경 시 자동 저장
+  document.getElementById('ab-sheet-url').addEventListener('input', function() {
+    const v = this.value.trim();
+    if (v) localStorage.setItem('qoo10_ab_sheet_url', v);
+    else localStorage.removeItem('qoo10_ab_sheet_url');
+  });
+
        updateUI();
       log('스크립트 로드 완료');
       setStatus('키워드 검색 후 "모니터링 시작" 클릭','#888');
