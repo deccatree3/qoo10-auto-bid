@@ -25,6 +25,19 @@
       document.body.appendChild(panel);
 
    let pollTimer = null, bidFired = false, myBidPrice = 0, myBidRank = 0;
+  let bidWorker = null;
+
+  // Web Worker 생성 (탭 숨겨도 타이머 정상 작동)
+  const workerCode = [
+    'var _iv = null;',
+    'onmessage = function(e) {',
+    '  if (e.data && e.data.type === "start") { _iv = setInterval(function() { postMessage("tick"); }, e.data.ms); }',
+    '  else if (e.data === "stop") { clearInterval(_iv); _iv = null; }',
+    '};'
+  ].join('\n');
+  const workerBlob = new Blob([workerCode], {type: 'application/javascript'});
+  const workerUrl = URL.createObjectURL(workerBlob);
+
       let bidEndTime = null, serverPcOffset = 0;
 
    function log(msg) {
@@ -173,11 +186,17 @@
            document.getElementById('ab-stop').disabled = false;
            setStatus('👁 모니터링 중...','#48cae4');
            log('모니터링 시작 - ' + (ADBidding.plus_items.keyword||''));
-           tick(); pollTimer = setInterval(tick, pollMs);
+           tick();
+    // Web Worker로 타이머 실행 (탭 숨겨도 throttle 없음)
+    bidWorker = new Worker(workerUrl);
+    bidWorker.onmessage = function() { tick(); };
+    bidWorker.postMessage({ type: 'start', ms: pollMs });
+    pollTimer = true; // 모니터링 중 플래그
    }
 
    function stopMonitoring() {
-           if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+           if (bidWorker) { bidWorker.postMessage('stop'); bidWorker.terminate(); bidWorker = null; }
+    pollTimer = null;
            document.getElementById('ab-start').disabled = false;
            document.getElementById('ab-stop').disabled = true;
            if (!bidFired) setStatus('정지됨','#888');
