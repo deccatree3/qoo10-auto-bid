@@ -184,7 +184,15 @@
            log('모니터링 정지');
             }
 
-   document.getElementById('ab-start').addEventListener('click', startMonitoring);
+   // 탭 복귀 시 즉시 tick() 실행 (다수 키워드 탭 전환 대응)
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible' && pollTimer) {
+      tick();
+      log('👁️ 탭 복귀 - 즉시 시간 체크');
+    }
+  });
+
+  document.getElementById('ab-start').addEventListener('click', startMonitoring);
       document.getElementById('ab-stop').addEventListener('click', stopMonitoring);
       document.getElementById('ab-close').addEventListener('click', () => { stopMonitoring(); panel.remove(); });
 
