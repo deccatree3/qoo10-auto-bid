@@ -79,6 +79,16 @@
       }
 
    function getCurrentBidList() {
+           const rows = document.querySelectorAll('#tbody_bid_list tr.tr_top');
+           if (rows.length > 0) {
+                     const fallback = (ADBidding.plus_items && ADBidding.plus_items.list_bid) ? ADBidding.plus_items.list_bid : [];
+                     return Array.from(rows).map((tr, i) => {
+                               const txt = tr.querySelector('span.txt');
+                               const price = txt ? parseInt(txt.textContent.replace(/,/g, '')) : 0;
+                               const is_mine = fallback[i] ? fallback[i].my_gd_no !== '' : false;
+                               return { rank: i+1, price, is_mine };
+                     });
+           }
            if (!ADBidding.plus_items || !ADBidding.plus_items.list_bid) return [];
            return ADBidding.plus_items.list_bid.map((b, i) => ({ rank: i+1, price: b.bid_price, is_mine: b.my_gd_no !== '' }));
    }
