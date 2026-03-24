@@ -16,7 +16,18 @@
 function doGet(e) {
   try {
     var params = e.parameter;
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('db');
+
+    // 'db' 시트가 없으면 생성
+    if (!sheet) {
+      sheet = ss.insertSheet('db');
+    }
+
+    // 행이 부족하면 100행 추가
+    if (sheet.getLastRow() >= sheet.getMaxRows() - 5) {
+      sheet.insertRowsAfter(sheet.getMaxRows(), 100);
+    }
 
     // 헤더가 없으면 첫 줄에 추가
     if (sheet.getLastRow() === 0) {
