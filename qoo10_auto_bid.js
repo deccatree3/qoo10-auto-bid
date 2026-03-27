@@ -38,7 +38,7 @@
   const workerBlob = new Blob([workerCode], {type: 'application/javascript'});
   const workerUrl = URL.createObjectURL(workerBlob);
 
-      let bidEndTime = null, serverPcOffset = 0;
+      let bidEndTime = null, lastDomSecs = null;
 
    function log(msg) {
            const el = document.getElementById('ab-log');
@@ -59,24 +59,7 @@
    }
       function getTrueSecondsLeft() {
               if (bidEndTime === null) return getSecondsLeft();
-              return Math.round((bidEndTime - (Date.now() + serverPcOffset)) / 1000);
-      }
-      function calibrateServerTime() {
-              try {
-                        const serverNow = ADBidding.server_time.getTime();
-                        serverPcOffset = serverNow - Date.now();
-      // offset이 ±3분 이상이면 stale 경고
-      if (Math.abs(serverPcOffset) > 180000) {
-        log('⚠️ 서버 시간 차이 ' + Math.round(serverPcOffset/1000) + '초 - 페이지가 오래됨. 새로고침 권장');
-        setStatus('⚠️ 시간 차이 큼 - F5 새로고침 권장', '#f4a261');
-      }
-                        const secs = getSecondsLeft();
-                        if (secs !== null && secs > 0) {
-                                    // +500ms: DOM은 정수초라 최대 1초 오차 → 중간값 보정
-                                    bidEndTime = serverNow + secs * 1000 + 500;
-                                    log('⏱ 서버 시간 보정 완료 (offset: ' + (serverPcOffset >= 0 ? '+' : '') + serverPcOffset + 'ms)');
-                        } else { log('⚠️ 남은 시간 읽기 실패 - DOM 기반으로 대체'); }
-              } catch (e) { log('⚠️ 서버 시간 보정 실패: ' + e.message); }
+              return Math.round((bidEndTime - Date.now()) / 1000);
       }
 
    function getCurrentBidList() {
@@ -192,6 +175,12 @@
 
    function tick() {
            tickCount++;
+           // DOM 초가 바뀌는 순간 포착 → bidEndTime 정밀 갱신 (오차 ±100ms)
+           const domSecs = getSecondsLeft();
+           if (domSecs !== null && domSecs !== lastDomSecs) {
+                     bidEndTime = Date.now() + domSecs * 1000;
+                     lastDomSecs = domSecs;
+           }
            const triggerSecs = parseInt(document.getElementById('ab-timing').value);
            // API 호출은 10 tick마다 1회 (≈1초) - 서버 부하 동일하게 유지
            if (tickCount % 10 === 0) {
@@ -217,10 +206,9 @@
    function startMonitoring() {
            if (pollTimer) return;
            if (!ADBidding.plus_items || !ADBidding.bp_plus_id) { alert('키워드를 먼저 검색하고 상품을 선택해 주세요.'); return; }
-           bidFired = false; bidScheduled = false; myBidPrice = 0; myBidRank = 0; bidEndTime = null; serverPcOffset = 0; tickCount = 0;
+           bidFired = false; bidScheduled = false; myBidPrice = 0; myBidRank = 0; bidEndTime = null; lastDomSecs = null; tickCount = 0;
            setStatus('🔄 데이터 갱신 중...', '#f4a261');
            try { ADBidding.getBiddingList(); } catch(e) {}
-           setTimeout(function() { calibrateServerTime(); }, 1000);
            document.getElementById('ab-start').disabled = true;
            document.getElementById('ab-stop').disabled = false;
            setStatus('👁 모니터링 중...','#48cae4');
