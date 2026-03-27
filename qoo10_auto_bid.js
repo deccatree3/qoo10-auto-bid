@@ -72,7 +72,8 @@
       }
                         const secs = getSecondsLeft();
                         if (secs !== null && secs > 0) {
-                                    bidEndTime = serverNow + secs * 1000;
+                                    // +500ms: DOM은 정수초라 최대 1초 오차 → 중간값 보정
+                                    bidEndTime = serverNow + secs * 1000 + 500;
                                     log('⏱ 서버 시간 보정 완료 (offset: ' + (serverPcOffset >= 0 ? '+' : '') + serverPcOffset + 'ms)');
                         } else { log('⚠️ 남은 시간 읽기 실패 - DOM 기반으로 대체'); }
               } catch (e) { log('⚠️ 서버 시간 보정 실패: ' + e.message); }
@@ -106,9 +107,14 @@
            const secsLeft = getTrueSecondsLeft();
            const tlEl = document.getElementById('ab-timeleft');
            if (secsLeft !== null) {
-                     const h = Math.floor(secsLeft/3600), m = Math.floor((secsLeft%3600)/60), s = secsLeft%60;
-                     tlEl.textContent = h + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
-                     tlEl.style.color = secsLeft <= 10 ? '#e94560' : secsLeft <= 30 ? '#f4a261' : '#48cae4';
+                     if (secsLeft <= 0) {
+                               tlEl.textContent = '마감';
+                               tlEl.style.color = '#e94560';
+                     } else {
+                               const h = Math.floor(secsLeft/3600), m = Math.floor((secsLeft%3600)/60), s = secsLeft%60;
+                               tlEl.textContent = h + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+                               tlEl.style.color = secsLeft <= 10 ? '#e94560' : secsLeft <= 30 ? '#f4a261' : '#48cae4';
+                     }
            }
            document.getElementById('ab-unit').textContent = getBidUnit() + '¥';
            const bids = getCurrentBidList();
@@ -157,19 +163,24 @@
            if (adj <= 0) { setStatus('❌ 입찰가 계산 오류','#e94560'); return; }
            if (adj > maxBidPrice) { setStatus('❌ 최대금액('+maxBidPrice+'¥) 초과 - 입찰 취소','#e94560'); log('최대금액 초과로 입찰 취소'); return; }
            myBidPrice = adj; myBidRank = targetRank;
-           log('🚀 입찰 실행! ' + adj + '¥ (목표 ' + targetRank + '위)');
+           log('🚀 입찰 실행! ' + adj + '¥ (목표 ' + targetRank + '위, 남은 ' + getTrueSecondsLeft() + '초)');
            setStatus('🚀 입찰 중... ' + adj.toLocaleString() + '¥', '#00b4d8');
            const inp = document.getElementById('txt_bidding_price');
            if (inp) { inp.value = adj; inp.dispatchEvent(new Event('input',{bubbles:true})); inp.dispatchEvent(new Event('change',{bubbles:true})); }
            setTimeout(() => {
                      try {
-                                 // confirm() 다이얼로그 자동 승인 (setPlaceBidding 내부에서 native confirm 호출됨)
+                                 // confirm() 다이얼로그 자동 승인
                                  const origConfirm = window.confirm;
                                  window.confirm = function() { return true; };
                                  setTimeout(() => { window.confirm = origConfirm; }, 5000);
-                                 if (typeof ADBidding.setPlaceBidding === 'function') {
-                                               ADBidding.setPlaceBidding();
+                                 // setPlaceBidding()은 내부에 동기 WebService 호출이 있어 메인 스레드를 ~1초 블로킹함
+                                 // setPlaceKeywordBidding()을 직접 호출하여 블로킹 없이 즉시 비동기 입찰
+                                 if (typeof ADBidding.setPlaceKeywordBidding === 'function') {
+                                               ADBidding.setPlaceKeywordBidding();
                                                log('✅ 입찰 제출: '+adj+'¥'); setStatus('✅ 입찰 완료: '+adj.toLocaleString()+'¥','#4CAF50');
+                                 } else if (typeof ADBidding.setPlaceBidding === 'function') {
+                                               ADBidding.setPlaceBidding();
+                                               log('✅ 입찰 제출(fallback): '+adj+'¥'); setStatus('✅ 입찰 완료: '+adj.toLocaleString()+'¥','#4CAF50');
                                  } else {
                                                const btn = document.getElementById('btn_place_bid');
                                                if (btn) { btn.click(); log('✅ 버튼 클릭으로 입찰: '+adj+'¥'); setStatus('✅ 입찰 완료: '+adj.toLocaleString()+'¥','#4CAF50'); }
