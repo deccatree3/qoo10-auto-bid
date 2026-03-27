@@ -163,6 +163,10 @@
            if (inp) { inp.value = adj; inp.dispatchEvent(new Event('input',{bubbles:true})); inp.dispatchEvent(new Event('change',{bubbles:true})); }
            setTimeout(() => {
                      try {
+                                 // confirm() 다이얼로그 자동 승인 (setPlaceBidding 내부에서 native confirm 호출됨)
+                                 const origConfirm = window.confirm;
+                                 window.confirm = function() { return true; };
+                                 setTimeout(() => { window.confirm = origConfirm; }, 5000);
                                  if (typeof ADBidding.setPlaceBidding === 'function') {
                                                ADBidding.setPlaceBidding();
                                                log('✅ 입찰 제출: '+adj+'¥'); setStatus('✅ 입찰 완료: '+adj.toLocaleString()+'¥','#4CAF50');
