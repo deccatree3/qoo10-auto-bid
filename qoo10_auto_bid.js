@@ -178,7 +178,11 @@
            // DOM 초가 바뀌는 순간 포착 → bidEndTime 정밀 갱신 (오차 ±100ms)
            const domSecs = getSecondsLeft();
            if (domSecs !== null && domSecs !== lastDomSecs) {
-                     bidEndTime = Date.now() + domSecs * 1000;
+                     // 시간이 줄어들 때만 업데이트 (getBiddingList 응답으로 DOM 리셋되는 경우 무시)
+                     // 단, 10초 이상 증가 = 새 입찰 시작 → 허용
+                     if (lastDomSecs === null || domSecs < lastDomSecs || domSecs > lastDomSecs + 10) {
+                               bidEndTime = Date.now() + domSecs * 1000;
+                     }
                      lastDomSecs = domSecs;
            }
            const triggerSecs = parseInt(document.getElementById('ab-timing').value);
