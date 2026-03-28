@@ -178,9 +178,12 @@
            // DOM 초가 바뀌는 순간 포착 → bidEndTime 정밀 갱신 (오차 ±100ms)
            const domSecs = getSecondsLeft();
            if (domSecs !== null && domSecs !== lastDomSecs) {
-                     // 시간이 줄어들 때만 업데이트 (getBiddingList 응답으로 DOM 리셋되는 경우 무시)
-                     // 단, 10초 이상 증가 = 새 입찰 시작 → 허용
-                     if (lastDomSecs === null || domSecs < lastDomSecs || domSecs > lastDomSecs + 10) {
+                     // 정상 카운트다운(1~2초 감소)만 업데이트
+                     // 급증(마감 후 늦은 실행) 또는 급감(마감 전 이른 실행) 모두 무시
+                     const diff = lastDomSecs === null ? null : domSecs - lastDomSecs;
+                     const isNormalCountdown = diff !== null && diff <= -1 && diff >= -2;
+                     const isNewAuction = diff !== null && diff > 10;
+                     if (lastDomSecs === null || isNormalCountdown || isNewAuction) {
                                bidEndTime = Date.now() + domSecs * 1000;
                      }
                      lastDomSecs = domSecs;
