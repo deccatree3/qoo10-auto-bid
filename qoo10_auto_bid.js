@@ -38,7 +38,7 @@
   const workerBlob = new Blob([workerCode], {type: 'application/javascript'});
   const workerUrl = URL.createObjectURL(workerBlob);
 
-      let bidEndTime = null, lastDomSecs = null;
+      let bidEndTime = null, serverPcOffset = 0;
 
    function log(msg) {
            const el = document.getElementById('ab-log');
@@ -59,7 +59,22 @@
    }
       function getTrueSecondsLeft() {
               if (bidEndTime === null) return getSecondsLeft();
-              return Math.round((bidEndTime - Date.now()) / 1000);
+              return Math.round((bidEndTime - (Date.now() + serverPcOffset)) / 1000);
+      }
+      function calibrateServerTime() {
+              try {
+                        const serverNow = ADBidding.server_time.getTime();
+                        serverPcOffset = serverNow - Date.now();
+                        const secs = getSecondsLeft();
+                        if (secs !== null && secs > 0) {
+                                  bidEndTime = serverNow + secs * 1000;
+                                  log('⏱ 서버 시간 보정 완료 (offset: ' + serverPcOffset + 'ms)');
+                        }
+              } catch(e) {
+                        const secs = getSecondsLeft();
+                        if (secs !== null) bidEndTime = Date.now() + secs * 1000;
+                        log('⚠️ 서버 시간 없음 - DOM 기반으로 대체');
+              }
       }
 
    function getCurrentBidList() {
@@ -175,19 +190,6 @@
 
    function tick() {
            tickCount++;
-           // DOM 초가 바뀌는 순간 포착 → bidEndTime 정밀 갱신 (오차 ±100ms)
-           const domSecs = getSecondsLeft();
-           if (domSecs !== null && domSecs !== lastDomSecs) {
-                     // 정상 카운트다운(1~2초 감소)만 업데이트
-                     // 급증(마감 후 늦은 실행) 또는 급감(마감 전 이른 실행) 모두 무시
-                     const diff = lastDomSecs === null ? null : domSecs - lastDomSecs;
-                     const isNormalCountdown = diff !== null && diff <= -1 && diff >= -2;
-                     const isNewAuction = diff !== null && diff > 10;
-                     if (lastDomSecs === null || isNormalCountdown || isNewAuction) {
-                               bidEndTime = Date.now() + domSecs * 1000;
-                     }
-                     lastDomSecs = domSecs;
-           }
            const triggerSecs = parseInt(document.getElementById('ab-timing').value);
            // API 호출은 10 tick마다 1회 (≈1초) - 서버 부하 동일하게 유지
            if (tickCount % 10 === 0) {
@@ -213,9 +215,10 @@
    function startMonitoring() {
            if (pollTimer) return;
            if (!ADBidding.plus_items || !ADBidding.bp_plus_id) { alert('키워드를 먼저 검색하고 상품을 선택해 주세요.'); return; }
-           bidFired = false; bidScheduled = false; myBidPrice = 0; myBidRank = 0; bidEndTime = null; lastDomSecs = null; tickCount = 0;
+           bidFired = false; bidScheduled = false; myBidPrice = 0; myBidRank = 0; bidEndTime = null; serverPcOffset = 0; tickCount = 0;
            setStatus('🔄 데이터 갱신 중...', '#f4a261');
            try { ADBidding.getBiddingList(); } catch(e) {}
+           calibrateServerTime();
            document.getElementById('ab-start').disabled = true;
            document.getElementById('ab-stop').disabled = false;
            setStatus('👁 모니터링 중...','#48cae4');
