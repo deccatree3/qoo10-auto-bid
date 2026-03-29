@@ -21,7 +21,7 @@
         + '<div style="background:#16213e;border-radius:8px;padding:8px;margin-bottom:10px;max-height:120px;overflow-y:auto;"><div style="color:#a0a0c0;font-size:11px;margin-bottom:4px;">▼ 현재 입찰 리스트</div><div id="ab-bid-list" style="font-size:11px;line-height:1.8;"></div></div>'
         + '<div style="display:flex;gap:6px;margin-bottom:8px;"><button id="ab-start" style="flex:1;padding:8px;background:#e94560;border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:bold;">▶ 모니터링 시작</button><button id="ab-stop" style="flex:1;padding:8px;background:#444;border:none;border-radius:6px;color:#fff;cursor:pointer;" disabled>■ 정지</button></div>'
         + '<div id="ab-status" style="text-align:center;font-size:11px;color:#888;min-height:16px;"></div>'
-        + '<div id="ab-log" style="margin-top:8px;font-size:10px;color:#666;max-height:80px;overflow-y:auto;border-top:1px solid #333;padding-top:6px;"></div>';
+        + '<div id="ab-log" style="margin-top:8px;font-size:10px;color:#666;max-height:160px;overflow-y:auto;border-top:1px solid #333;padding-top:6px;"></div>';
       document.body.appendChild(panel);
 
    let pollTimer = null, bidFired = false, bidScheduled = false, myBidPrice = 0, myBidRank = 0;
