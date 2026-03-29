@@ -42,7 +42,8 @@
 
    function log(msg) {
            const el = document.getElementById('ab-log');
-           el.innerHTML = '<div>' + new Date().toLocaleTimeString('ko-KR') + ' ' + msg + '</div>' + el.innerHTML;
+           const t = new Date(Date.now() + serverPcOffset).toLocaleTimeString('ko-KR');
+           el.innerHTML = '<div>' + t + ' ' + msg + '</div>' + el.innerHTML;
    }
       function setStatus(msg, color) {
               const el = document.getElementById('ab-status');
