@@ -203,6 +203,12 @@
                      if (secsLeft <= 60 && tickCount % 10 === 0) {
                                log('⏱ 남은 시간: ' + secsLeft + '초');
                      }
+                     // 마감 5초 전부터 매초 입찰 현황 스냅샷 로그 (읽기 전용, 입찰 로직 무관)
+                     if (secsLeft <= 5 && secsLeft > 0 && tickCount % 10 === 0) {
+                               const snapshot = getCurrentBidList().slice(0, 10)
+                                         .map(b => b.rank + '위:' + b.price.toLocaleString() + '¥').join(' ');
+                               log('📋 ' + secsLeft + '초전: ' + snapshot);
+                     }
                      if (!bidFired && !bidScheduled && secsLeft <= triggerSecs && secsLeft >= 0) {
                                bidScheduled = true;
                                setStatus('⚡ 마감 '+secsLeft+'초! 입찰 실행!','#e94560');
