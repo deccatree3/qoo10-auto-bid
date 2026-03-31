@@ -68,12 +68,16 @@
                         serverPcOffset = serverNow - Date.now();
                         const secs = getSecondsLeft();
                         if (secs !== null && secs > 0) {
-                                  bidEndTime = serverNow + secs * 1000;
-                                  log('⏱ 서버 시간 보정 완료 (offset: ' + serverPcOffset + 'ms)');
+                                  const newEndTime = serverNow + secs * 1000;
+                                  // MAX 방식: 더 늦은 마감 시각만 반영 (DOM 지연으로 인한 과소추정 보정)
+                                  if (bidEndTime === null || newEndTime > bidEndTime) {
+                                            bidEndTime = newEndTime;
+                                            log('⏱ 마감 보정: ' + new Date(bidEndTime).toLocaleTimeString('ko-KR') + ' (offset: ' + serverPcOffset + 'ms)');
+                                  }
                         }
               } catch(e) {
                         const secs = getSecondsLeft();
-                        if (secs !== null) bidEndTime = Date.now() + secs * 1000;
+                        if (secs !== null && bidEndTime === null) bidEndTime = Date.now() + secs * 1000;
                         log('⚠️ 서버 시간 없음 - DOM 기반으로 대체');
               }
       }
@@ -195,6 +199,11 @@
            // API 호출은 10 tick마다 1회 (≈1초) - 서버 부하 동일하게 유지
            if (tickCount % 10 === 0) {
                      try { ADBidding.getBiddingList(); } catch(e) { log('현황 갱신 오류: '+e.message); }
+                     // 마감 10초 이전에는 매초 재보정 (DOM 지연 누적 보정, MAX 방식이므로 안전)
+                     const safeLeft = getTrueSecondsLeft();
+                     if (safeLeft === null || safeLeft > 10) {
+                               setTimeout(calibrateServerTime, 600);
+                     }
            }
            updateUI();
            const secsLeft = getTrueSecondsLeft();
