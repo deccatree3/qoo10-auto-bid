@@ -50,6 +50,37 @@ JavaScript 북마크릿으로 동작 - Chrome 북마크바 클릭 시 패널 표
 - Apps Script: `db` 시트에 기록, 시트 없으면 자동 생성, 행 부족 시 100행 자동 추가
 - 구글 시트: https://docs.google.com/spreadsheets/d/1wsgn4IxFrFc9ubVtmosFy6wDsKqztnUWfy1Jniu7YRU
 
+## 기능 체크리스트 (수정 전 반드시 확인)
+
+> 코드 수정 시 아래 항목이 모두 유지되는지 검토 후 진행할 것.
+> 오류 수정 전 반드시 원인을 먼저 확정하고, 추정 상태에서 수정 금지.
+
+| # | 기능 | 상태 | 비고 |
+|---|---|---|---|
+| 1 | Web Worker 기반 타이머 (탭 백그라운드 100ms 유지) | ✅ | Chrome Tab Throttling 우회 |
+| 2 | QSM 서버-PC 시간 오차 보정 (serverPcOffset) | ✅ | calibrateServerTime() |
+| 3 | 마감 시각 지속 재싱크 (getBiddingList 응답마다) | ✅ | MAX 방식, 마감 10초 전까지 |
+| 4 | 탭 복귀 시 즉시 UI 체크 | ✅ | visibilitychange → tick() |
+| 5 | 탭 복귀 시 시간 재보정 | ❌ | visibilitychange에서 calibrate 미호출 |
+| 6 | 입찰가 최신값 읽기 (DOM 직접 읽기) | ✅ | ADBidding.plus_items.list_bid 사용 안 함 |
+| 7 | N초 전 정확한 입찰 트리거 | ⚠️ | 2초 오차 보고됨, 원인 미확정 |
+| 8 | 입찰가 = 목표 순위 현재가 + 입찰단위 | ✅ | calcOptimalBid() |
+| 9 | 최대 입찰금액 초과 시 자동 취소 | ✅ | executeBid() 내 체크 |
+| 10 | confirm() 자동 승인 | ✅ | window.confirm 임시 교체 |
+| 11 | setPlaceKeywordBidding() 직접 호출 (블로킹 방지) | ✅ | setPlaceBidding() 우회 |
+| 12 | 구글 시트 자동 기록 | ✅ | image beacon (CSP 우회) |
+| 13 | Apps Script URL localStorage 저장 | ✅ | 재시작 후에도 유지 |
+| 14 | 로그 타임스탬프 QSM 서버 시간 기준 | ✅ | Date.now() + serverPcOffset |
+| 15 | 마감 5초 전 입찰 현황 스냅샷 로그 | ✅ | 입찰 로직 무관, 읽기 전용 |
+| 16 | 패널 드래그 이동 | ✅ | |
+| 17 | 키워드 미선택 시 시작 차단 | ✅ | ADBidding.bp_plus_id 체크 |
+
+## 미확정 사안 (추정으로 수정 금지)
+
+- **N초 전 입찰 2초 오차**: QSM 서버 실제 마감 시각 vs 사용자 인식 차이인지, 스크립트 오류인지 미확정
+  - 확인 방법: 다음 실행 시 calibrate 로그(serverNow, DOM secs, bidEndTime)와 실제 QSM 마감 시각 대조
+  - 현재 상태: 진단 로그 미추가 (추가 필요)
+
 ## 수정된 버그 히스토리
 
 - **탭 백그라운드 시 타이머 멈춤** → Web Worker 기반 타이머로 교체
