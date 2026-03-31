@@ -66,11 +66,6 @@
               try {
                         const serverNow = ADBidding.server_time.getTime();
                         serverPcOffset = serverNow - Date.now();
-      // offset이 ±3분 이상이면 stale 경고
-      if (Math.abs(serverPcOffset) > 180000) {
-        log('⚠️ 서버 시간 차이 ' + Math.round(serverPcOffset/1000) + '초 - 페이지가 오래됨. 새로고침 권장');
-        setStatus('⚠️ 시간 차이 큼 - F5 새로고침 권장', '#f4a261');
-      }
                         const secs = getSecondsLeft();
                         if (secs !== null && secs > 0) {
                                   bidEndTime = serverNow + secs * 1000;
