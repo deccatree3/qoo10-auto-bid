@@ -197,8 +197,7 @@
                      if (!bidFired && !bidScheduled && secsLeft <= triggerSecs && secsLeft >= 0) {
                                bidScheduled = true;
                                setStatus('⚡ 마감 '+secsLeft+'초! 입찰 실행!','#e94560');
-                               log('🔄 최종 리스트 갱신 → 즉시 입찰 실행');
-                               try { ADBidding.getBiddingList(); } catch(e) {}
+                               log('🎯 입찰 트리거 발동 (남은 '+secsLeft+'초)');
                                executeBid();
                      } else if (secsLeft <= 0 && bidFired) { setTimeout(function() { recordToSheet(); stopMonitoring(); }, 1500); }
            }
