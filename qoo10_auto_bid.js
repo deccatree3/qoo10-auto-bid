@@ -53,7 +53,7 @@
 
       function getTrueSecondsLeft() {
               if (bidEndTime === null) return null;
-              return Math.floor((bidEndTime - (Date.now() + serverPcOffset)) / 1000);
+              return Math.ceil((bidEndTime - (Date.now() + serverPcOffset)) / 1000);
       }
       function calcBidEndTime() {
               const parts = document.getElementById('ab-deadline').value.split(':');
