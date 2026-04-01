@@ -15,7 +15,7 @@
       panel.style.cssText = 'position:fixed;top:20px;right:20px;z-index:99999;background:#1a1a2e;color:#e0e0e0;border-radius:12px;padding:16px;width:320px;font-family:Malgun Gothic,sans-serif;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,.5);border:1px solid #16213e;';
       panel.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><span style="font-size:15px;font-weight:bold;color:#e94560;">⚡ 자동 입찰</span><button id="ab-close" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:16px;">✕</button></div>'
         
-        + '<div style="background:#16213e;border-radius:8px;padding:10px;margin-bottom:10px;"><div style="margin-bottom:8px;color:#a0a0c0;font-size:11px;">▼ 입찰 설정</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"><label style="font-size:11px;">목표 순위<input id="ab-rank" type="number" value="3" min="1" max="16" style="width:100%;margin-top:3px;padding:4px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#fff;text-align:center;"></label><label style="font-size:11px;">최대 입찰금액(¥)<input id="ab-max" type="number" value="2000" step="100" style="width:100%;margin-top:3px;padding:4px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#fff;text-align:center;"></label><label style="font-size:11px;grid-column:1/-1;">마감 N초 전 입찰<input id="ab-timing" type="number" value="3" min="1" max="10" style="width:100%;margin-top:3px;padding:4px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#fff;text-align:center;"></label></div></div>'
+        + '<div style="background:#16213e;border-radius:8px;padding:10px;margin-bottom:10px;"><div style="margin-bottom:8px;color:#a0a0c0;font-size:11px;">▼ 입찰 설정</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"><label style="font-size:11px;">목표 순위<input id="ab-rank" type="number" value="3" min="1" max="16" style="width:100%;margin-top:3px;padding:4px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#fff;text-align:center;"></label><label style="font-size:11px;">최대 입찰금액(¥)<input id="ab-max" type="number" value="2000" step="100" style="width:100%;margin-top:3px;padding:4px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#fff;text-align:center;"></label><label style="font-size:11px;grid-column:1/-1;">마감 N초 전 입찰<input id="ab-timing" type="number" value="3" min="1" max="10" style="width:100%;margin-top:3px;padding:4px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#fff;text-align:center;"></label><label style="font-size:11px;grid-column:1/-1;">마감 시각 (HH:MM)<input id="ab-deadline" type="text" value="17:50" style="width:100%;margin-top:3px;padding:4px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#fff;text-align:center;"></label></div></div>'
         + '<div style="background:#16213e;border-radius:8px;padding:10px;margin-bottom:10px;"><div style="margin-bottom:6px;color:#a0a0c0;font-size:11px;">▼ 구글 시트 자동 기록</div><label style="font-size:11px;">Apps Script URL<input id="ab-sheet-url" type="text" placeholder="배포된 웹 앱 URL 붙여넣기" style="width:100%;margin-top:3px;padding:4px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#fff;font-size:10px;box-sizing:border-box;"></label><div style="margin-top:6px;display:flex;align-items:center;gap:6px;"><input id="ab-sheet-enable" type="checkbox" checked style="cursor:pointer;"><label for="ab-sheet-enable" style="font-size:11px;cursor:pointer;">입찰 마감 후 자동 기록</label></div></div>'
         + '<div style="background:#16213e;border-radius:8px;padding:10px;margin-bottom:10px;"><div style="color:#a0a0c0;font-size:11px;margin-bottom:6px;">▼ 실시간 현황</div><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#aaa;">남은 시간</span><span id="ab-timeleft" style="font-weight:bold;color:#0f3460;">--:--:--</span></div><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#aaa;">목표순위 현재가</span><span id="ab-current-price" style="font-weight:bold;color:#e94560;">-</span></div><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#aaa;">예상 입찰가</span><span id="ab-planned-price" style="font-weight:bold;color:#00b4d8;">-</span></div><div style="display:flex;justify-content:space-between;"><span style="color:#aaa;">입찰단위</span><span id="ab-unit">-</span></div></div>'
         + '<div style="background:#16213e;border-radius:8px;padding:8px;margin-bottom:10px;max-height:120px;overflow-y:auto;"><div style="color:#a0a0c0;font-size:11px;margin-bottom:4px;">▼ 현재 입찰 리스트</div><div id="ab-bid-list" style="font-size:11px;line-height:1.8;"></div></div>'
@@ -51,35 +51,16 @@
       }
 
 
-   function getSecondsLeft() {
-           const el = document.querySelector('#td_left_time');
-           if (!el) return null;
-           const p = el.textContent.trim().split(':');
-           if (p.length !== 3) return null;
-           return parseInt(p[0]) * 3600 + parseInt(p[1]) * 60 + parseInt(p[2]);
-   }
       function getTrueSecondsLeft() {
-              if (bidEndTime === null) return getSecondsLeft();
+              if (bidEndTime === null) return null;
               return Math.round((bidEndTime - (Date.now() + serverPcOffset)) / 1000);
       }
-      function calibrateServerTime() {
-              try {
-                        const serverNow = ADBidding.server_time.getTime();
-                        serverPcOffset = serverNow - Date.now();
-                        const secs = getSecondsLeft();
-                        if (secs !== null && secs > 0) {
-                                  const newEndTime = serverNow + secs * 1000;
-                                  // MAX 방식: 더 늦은 마감 시각만 반영 (DOM 지연으로 인한 과소추정 보정)
-                                  if (bidEndTime === null || newEndTime > bidEndTime) {
-                                            bidEndTime = newEndTime;
-                                            log('⏱ 마감 보정: ' + new Date(bidEndTime).toLocaleTimeString('ko-KR') + ' (offset: ' + serverPcOffset + 'ms)');
-                                  }
-                        }
-              } catch(e) {
-                        const secs = getSecondsLeft();
-                        if (secs !== null && bidEndTime === null) bidEndTime = Date.now() + secs * 1000;
-                        log('⚠️ 서버 시간 없음 - DOM 기반으로 대체');
-              }
+      function calcBidEndTime() {
+              const parts = document.getElementById('ab-deadline').value.split(':');
+              const h = parseInt(parts[0]), m = parseInt(parts[1] || 0);
+              const serverNow = new Date(Date.now() + serverPcOffset);
+              const deadline = new Date(serverNow.getFullYear(), serverNow.getMonth(), serverNow.getDate(), h, m, 0, 0);
+              return deadline.getTime();
       }
 
    function getCurrentBidList() {
@@ -199,11 +180,6 @@
            // API 호출은 10 tick마다 1회 (≈1초) - 서버 부하 동일하게 유지
            if (tickCount % 10 === 0) {
                      try { ADBidding.getBiddingList(); } catch(e) { log('현황 갱신 오류: '+e.message); }
-                     // 마감 10초 이전에는 매초 재보정 (DOM 지연 누적 보정, MAX 방식이므로 안전)
-                     const safeLeft = getTrueSecondsLeft();
-                     if (safeLeft === null || safeLeft > 10) {
-                               setTimeout(calibrateServerTime, 600);
-                     }
            }
            updateUI();
            const secsLeft = getTrueSecondsLeft();
@@ -234,7 +210,16 @@
            bidFired = false; bidScheduled = false; myBidPrice = 0; myBidRank = 0; bidEndTime = null; serverPcOffset = 0; tickCount = 0;
            setStatus('🔄 데이터 갱신 중...', '#f4a261');
            try { ADBidding.getBiddingList(); } catch(e) {}
-           setTimeout(function() { calibrateServerTime(); }, 1000);
+           setTimeout(function() {
+                     try {
+                               serverPcOffset = ADBidding.server_time.getTime() - Date.now();
+                     } catch(e) {
+                               serverPcOffset = 0;
+                               log('⚠️ 서버 시간 없음 - PC 시간 기준으로 대체');
+                     }
+                     bidEndTime = calcBidEndTime();
+                     log('⏱ 보정 완료 - 마감: ' + new Date(bidEndTime).toLocaleTimeString('ko-KR') + ' (offset: ' + serverPcOffset + 'ms)');
+           }, 1000);
            document.getElementById('ab-start').disabled = true;
            document.getElementById('ab-stop').disabled = false;
            setStatus('👁 모니터링 중...','#48cae4');
