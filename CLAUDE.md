@@ -36,10 +36,19 @@ JavaScript 북마크릿으로 동작 - Chrome 북마크바 클릭 시 패널 표
 ## 타이머 아키텍처 (중요)
 
 - **Web Worker**: 100ms 고정 간격으로 tick 실행 (탭 백그라운드에서도 Chrome throttle 없음)
-- **API 호출** (`getBiddingList()`): 10 tick마다 1회 = 약 1초 1회
+- **API 호출** (`getBiddingList()`): 10 tick마다 1회 = 약 1초 1회 (list_bid 갱신 목적)
 - **시간 체크**: 매 tick (100ms)마다 → 입찰 트리거 정밀도 100ms급
 - **입찰 리스트**: `ADBidding.plus_items.list_bid`는 갱신 안 됨 → `#tbody_bid_list tr.tr_top` DOM을 직접 읽어 최신 가격 반영
-- `bidEndTime` (절대 마감 시각)을 모니터링 시작 시 DOM 초 변화 감지로 갱신
+
+## 시간 계산 아키텍처 (중요)
+
+- **bidEndTime**: 사용자 입력 마감 시각(HH:MM) + serverPcOffset으로 계산한 절대 마감 시각(ms)
+- **serverPcOffset**: `ADBidding.server_time - Date.now()`. 모니터링 시작 시 getBiddingList() 응답 후 **1회만** 계산
+- **getTrueSecondsLeft()**: `(bidEndTime - (Date.now() + serverPcOffset)) / 1000`
+  - `Date.now()`는 실시간 PC 시계 → Throttling 영향 없음
+  - `#td_left_time` (QSM DOM 카운트다운) 의존 완전 제거
+- **마감 시각 입력**: 패널에 입력란 추가 (기본값 17:50, 변경 시 그 자리에서만 적용, localStorage 저장 안 함)
+- **`#td_left_time` 미사용 이유**: QSM 자체 JS 타이머가 Throttling 영향을 받아 탭 이탈 시 부정확해짐
 
 ## 구글 시트 자동 기록
 
@@ -58,12 +67,12 @@ JavaScript 북마크릿으로 동작 - Chrome 북마크바 클릭 시 패널 표
 | # | 기능 | 상태 | 비고 |
 |---|---|---|---|
 | 1 | Web Worker 기반 타이머 (탭 백그라운드 100ms 유지) | ✅ | Chrome Tab Throttling 우회 |
-| 2 | QSM 서버-PC 시간 오차 보정 (serverPcOffset) | ✅ | calibrateServerTime() |
-| 3 | 마감 시각 지속 재싱크 (getBiddingList 응답마다) | ✅ | MAX 방식, 마감 10초 전까지 |
+| 2 | QSM 서버-PC 시간 오차 보정 (serverPcOffset) | ✅ | 모니터링 시작 시 1회 계산 |
+| 3 | 마감 시각 Throttling 영향 없이 계산 | ✅ | Date.now() + serverPcOffset 기반, #td_left_time 미사용 |
 | 4 | 탭 복귀 시 즉시 UI 체크 | ✅ | visibilitychange → tick() |
-| 5 | 탭 복귀 시 시간 재보정 | ❌ | visibilitychange에서 calibrate 미호출 |
+| 5 | 탭 복귀 시 시간 재보정 | ✅ | bidEndTime 고정값, Date.now() 실시간 → 자동 정확 |
 | 6 | 입찰가 최신값 읽기 (DOM 직접 읽기) | ✅ | ADBidding.plus_items.list_bid 사용 안 함 |
-| 7 | N초 전 정확한 입찰 트리거 | ⚠️ | 2초 오차 보고됨, 원인 미확정 |
+| 7 | N초 전 정확한 입찰 트리거 | ⚠️ | 신규 방식으로 변경됨, 실전 테스트 필요 |
 | 8 | 입찰가 = 목표 순위 현재가 + 입찰단위 | ✅ | calcOptimalBid() |
 | 9 | 최대 입찰금액 초과 시 자동 취소 | ✅ | executeBid() 내 체크 |
 | 10 | confirm() 자동 승인 | ✅ | window.confirm 임시 교체 |
@@ -77,9 +86,7 @@ JavaScript 북마크릿으로 동작 - Chrome 북마크바 클릭 시 패널 표
 
 ## 미확정 사안 (추정으로 수정 금지)
 
-- **N초 전 입찰 2초 오차**: QSM 서버 실제 마감 시각 vs 사용자 인식 차이인지, 스크립트 오류인지 미확정
-  - 확인 방법: 다음 실행 시 calibrate 로그(serverNow, DOM secs, bidEndTime)와 실제 QSM 마감 시각 대조
-  - 현재 상태: 진단 로그 미추가 (추가 필요)
+- **N초 전 입찰 타이밍**: 신규 방식(사용자 입력 마감 시각 기반)으로 변경 후 실전 테스트 미완료
 
 ## 수정된 버그 히스토리
 
@@ -87,6 +94,7 @@ JavaScript 북마크릿으로 동작 - Chrome 북마크바 클릭 시 패널 표
 - **입찰가 갱신 안 됨** → `ADBidding.plus_items` 대신 DOM 직접 읽기로 전환
 - **입찰 마감 후 도달** → DOM 직접 읽기로 전환 후 대기 시간 전부 제거
 - **pollMs/triggerSecs 조합 오류** → API 호출(1초)과 타이머 tick(100ms) 분리
+- **N초 전 입찰 타이밍 오차** → `#td_left_time`(Throttling 영향) 및 `ADBidding.server_time`(정수 초 단위 오차) 의존 제거. 사용자 입력 마감 시각 + serverPcOffset + Date.now() 기반으로 전환
 
 ## 장기 로드맵
 
