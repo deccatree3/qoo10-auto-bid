@@ -258,6 +258,7 @@
     const h = parseInt(parts[0]) || 17, m = parseInt(parts[1] || 50);
     const now = new Date();
     const deadline = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
+    if (deadline.getTime() <= now.getTime()) deadline.setDate(deadline.getDate() + 1);
     const secsLeft = Math.ceil((deadline.getTime() - now.getTime()) / 1000);
     if (secsLeft <= 0) {
       tlEl.textContent = '마감'; tlEl.style.color = '#e94560';
