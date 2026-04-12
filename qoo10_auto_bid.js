@@ -17,7 +17,7 @@
         
         + '<div style="background:#16213e;border-radius:8px;padding:10px;margin-bottom:10px;"><div style="margin-bottom:8px;color:#a0a0c0;font-size:11px;">▼ 입찰 설정</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"><label style="font-size:11px;">목표 순위<input id="ab-rank" type="number" value="3" min="1" max="16" style="width:100%;margin-top:3px;padding:4px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#fff;text-align:center;"></label><label style="font-size:11px;">최대 입찰금액(¥)<input id="ab-max" type="number" value="2000" step="100" style="width:100%;margin-top:3px;padding:4px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#fff;text-align:center;"></label><label style="font-size:11px;grid-column:1/-1;">마감 N초 전 입찰<input id="ab-timing" type="number" value="3" min="1" max="10" style="width:100%;margin-top:3px;padding:4px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#fff;text-align:center;"></label><label style="font-size:11px;grid-column:1/-1;">마감 시각 (HH:MM)<input id="ab-deadline" type="text" value="17:50" style="width:100%;margin-top:3px;padding:4px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#fff;text-align:center;"></label></div></div>'
         + '<div style="background:#16213e;border-radius:8px;padding:10px;margin-bottom:10px;"><div style="margin-bottom:6px;color:#a0a0c0;font-size:11px;">▼ 구글 시트 자동 기록</div><label style="font-size:11px;">Apps Script URL<input id="ab-sheet-url" type="text" placeholder="배포된 웹 앱 URL 붙여넣기" style="width:100%;margin-top:3px;padding:4px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#fff;font-size:10px;box-sizing:border-box;"></label><div style="margin-top:6px;display:flex;align-items:center;gap:6px;"><input id="ab-sheet-enable" type="checkbox" checked style="cursor:pointer;"><label for="ab-sheet-enable" style="font-size:11px;cursor:pointer;">입찰 마감 후 자동 기록</label></div></div>'
-        + '<div style="background:#16213e;border-radius:8px;padding:10px;margin-bottom:10px;"><div style="color:#a0a0c0;font-size:11px;margin-bottom:6px;">▼ 실시간 현황</div><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#aaa;">남은 시간</span><span id="ab-timeleft" style="font-weight:bold;color:#0f3460;">--:--:--</span></div><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#aaa;">목표순위 현재가</span><span id="ab-current-price" style="font-weight:bold;color:#e94560;">-</span></div><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#aaa;">예상 입찰가</span><span id="ab-planned-price" style="font-weight:bold;color:#00b4d8;">-</span></div><div style="display:flex;justify-content:space-between;"><span style="color:#aaa;">입찰단위</span><span id="ab-unit">-</span></div></div>'
+        + '<div style="background:#16213e;border-radius:8px;padding:10px;margin-bottom:10px;"><div style="color:#a0a0c0;font-size:11px;margin-bottom:6px;">▼ 실시간 현황</div><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#aaa;">남은 시간</span><span id="ab-timeleft" style="font-weight:bold;color:#48cae4;">--:--:--</span></div><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#aaa;">목표순위 현재가</span><span id="ab-current-price" style="font-weight:bold;color:#e94560;">-</span></div><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#aaa;">예상 입찰가</span><span id="ab-planned-price" style="font-weight:bold;color:#00b4d8;">-</span></div><div style="display:flex;justify-content:space-between;"><span style="color:#aaa;">입찰단위</span><span id="ab-unit">-</span></div></div>'
         + '<div style="background:#16213e;border-radius:8px;padding:8px;margin-bottom:10px;max-height:120px;overflow-y:auto;"><div style="color:#a0a0c0;font-size:11px;margin-bottom:4px;">▼ 현재 입찰 리스트</div><div id="ab-bid-list" style="font-size:11px;line-height:1.8;"></div></div>'
         + '<div style="display:flex;gap:6px;margin-bottom:8px;"><button id="ab-start" style="flex:1;padding:8px;background:#e94560;border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:bold;">▶ 모니터링 시작</button><button id="ab-stop" style="flex:1;padding:8px;background:#444;border:none;border-radius:6px;color:#fff;cursor:pointer;" disabled>■ 정지</button></div>'
         + '<div id="ab-status" style="text-align:center;font-size:11px;color:#888;min-height:16px;"></div>'
@@ -248,7 +248,27 @@
 
   document.getElementById('ab-start').addEventListener('click', startMonitoring);
       document.getElementById('ab-stop').addEventListener('click', stopMonitoring);
-      document.getElementById('ab-close').addEventListener('click', () => { stopMonitoring(); panel.remove(); });
+
+  // 모니터링 시작 전에도 카운트다운 표시 (PC 시간 기반, 1초 갱신)
+  const uiClock = setInterval(function() {
+    if (bidEndTime !== null) return; // 모니터링 중이면 tick()이 담당
+    const tlEl = document.getElementById('ab-timeleft');
+    if (!tlEl) { clearInterval(uiClock); return; }
+    const parts = (document.getElementById('ab-deadline').value || '17:50').split(':');
+    const h = parseInt(parts[0]) || 17, m = parseInt(parts[1] || 50);
+    const now = new Date();
+    const deadline = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
+    const secsLeft = Math.ceil((deadline.getTime() - now.getTime()) / 1000);
+    if (secsLeft <= 0) {
+      tlEl.textContent = '마감'; tlEl.style.color = '#e94560';
+    } else {
+      const hh = Math.floor(secsLeft/3600), mm = Math.floor((secsLeft%3600)/60), ss = secsLeft%60;
+      tlEl.textContent = hh + ':' + String(mm).padStart(2,'0') + ':' + String(ss).padStart(2,'0');
+      tlEl.style.color = secsLeft <= 10 ? '#e94560' : secsLeft <= 30 ? '#f4a261' : '#48cae4';
+    }
+  }, 1000);
+
+      document.getElementById('ab-close').addEventListener('click', () => { clearInterval(uiClock); stopMonitoring(); panel.remove(); });
 
    let dragging = false, dragOffX = 0, dragOffY = 0;
       const header = panel.querySelector('div');
