@@ -256,11 +256,10 @@
     if (!tlEl) { clearInterval(uiClock); return; }
     const parts = (document.getElementById('ab-deadline').value || '17:50').split(':');
     const h = parseInt(parts[0]) || 17, m = parseInt(parts[1] || 50);
-    const serverNow = Date.now() + serverPcOffset;
-    const nowDate = new Date(serverNow);
-    const deadline = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate(), h, m, 0, 0);
-    if (deadline.getTime() <= serverNow) deadline.setDate(deadline.getDate() + 1);
-    const secsLeft = Math.ceil((deadline.getTime() - serverNow) / 1000);
+    const now = new Date();
+    const deadline = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
+    if (deadline.getTime() <= now.getTime()) deadline.setDate(deadline.getDate() + 1);
+    const secsLeft = Math.ceil((deadline.getTime() - now.getTime()) / 1000);
     if (secsLeft <= 0) {
       tlEl.textContent = '마감'; tlEl.style.color = '#e94560';
     } else {
@@ -290,11 +289,6 @@
     else localStorage.removeItem('qoo10_ab_sheet_url');
   });
 
-  // 패널 열릴 때 서버 시간 1회 동기화 (uiClock에 serverPcOffset 반영용)
-  try { ADBidding.getBiddingList(); } catch(e) {}
-  setTimeout(function() {
-    try { serverPcOffset = ADBidding.server_time.getTime() - Date.now(); } catch(e) {}
-  }, 1000);
 
        updateUI();
       log('스크립트 로드 완료');
